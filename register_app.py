@@ -1,68 +1,55 @@
 import streamlit as st
-import requests
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore, auth
 
-# Initialize Firebase from Streamlit Secrets (TOML)
+# Initialize Firebase
 if not firebase_admin._apps:
-    firebase_key = dict(st.secrets["FIREBASE_KEY_JSON"])
-    cred = credentials.Certificate(firebase_key)
+    cred = credentials.Certificate(dict(st.secrets["FIREBASE_KEY_JSON"]))
     firebase_admin.initialize_app(cred)
-
 db = firestore.client()
 
-# Firebase Web API Key
-API_KEY = "AIzaSyAjvVuA0v8as-bFApZztE62bJUvO58dELQ"
+st.title("Stock Alert Registration")
 
-st.title("Stock Alert App — Register & Login")
+menu = st.sidebar.selectbox("Menu", ["Register", "Login"])
 
-menu = ["Register", "Login"]
-choice = st.sidebar.selectbox("Menu", menu)
-
-if choice == "Register":
+if menu == "Register":
     st.subheader("Create New Account")
+
     email = st.text_input("Email")
     password = st.text_input("Password", type='password')
-    markets = st.multiselect("Select Markets", ["UK", "US", "Germany", "France", "Japan"])
+    telegram_id = st.text_input("Telegram Chat ID")
+    markets = st.multiselect("Select Markets", [
+        "UK - FTSE", "US - NASDAQ", "Germany - DAX",
+        "France - CAC", "Japan - Nikkei", "Crypto - Binance", "Commodities - CME"
+    ])
 
     if st.button("Register"):
-        if email and password:
-            try:
-                url = f"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={API_KEY}"
-                payload = {"email": email, "password": password, "returnSecureToken": True}
-                res = requests.post(url, json=payload)
-                if res.status_code == 200:
-                    db.collection('users').document(email).set({"markets": markets})
-                    st.success("Registration successful!")
-                else:
-                    st.error(f"Error: {res.json().get('error', {}).get('message', 'Unknown error')}")
-            except Exception as e:
-                st.error(f"Exception: {e}")
-        else:
-            st.warning("Please enter email and password.")
+        try:
+            user = auth.create_user(email=email, password=password)
+            db.collection('users').document(email).set({
+                'markets': markets,
+                'telegram_id': telegram_id
+            })
+            st.success("Account created successfully!")
+        except Exception as e:
+            st.error(f"Error: {e}")
 
-elif choice == "Login":
+elif menu == "Login":
     st.subheader("Login to Your Account")
+
     email = st.text_input("Email")
     password = st.text_input("Password", type='password')
 
     if st.button("Login"):
-        if email and password:
-            try:
-                url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={API_KEY}"
-                payload = {"email": email, "password": password, "returnSecureToken": True}
-                res = requests.post(url, json=payload)
-                if res.status_code == 200:
-                    st.success(f"Welcome, {email}!")
-                    user_data = db.collection('users').document(email).get()
-                    if user_data.exists:
-                        st.write(f"Your Markets: {user_data.to_dict().get('markets', [])}")
-                    else:
-                        st.warning("No market preferences found.")
-                else:
-                    st.error(f"Error: {res.json().get('error', {}).get('message', 'Unknown error')}")
-            except Exception as e:
-                st.error(f"Exception: {e}")
-        else:
-            st.warning("Please enter email and password.")
+        try:
+            user_ref = db.collection('users').document(email).get()
+            if user_ref.exists:
+                st.success(f"Welcome, {email}!")
+                user_data = user_ref.to_dict()
+                st.write("Your Markets:", user_data.get('markets', []))
+                st.write("Your Telegram ID:", user_data.get('telegram_id', 'Not Set'))
+            else:
+                st.error("User not found.")
+        except Exception as e:
+            st.error(f"Error: {e}")
 

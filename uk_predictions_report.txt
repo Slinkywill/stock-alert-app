@@ -1,0 +1,6 @@
+UK Stock Predictions:
+BARC.L: SELL
+HSBA.L: SELL
+VOD.L: BUY
+BP.L: SELL
+SHEL.L: SELL

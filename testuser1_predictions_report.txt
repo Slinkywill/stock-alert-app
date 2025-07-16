@@ -1,0 +1,7 @@
+Stock Predictions for testuser1:
+
+UK BARC.L Barclays PLC: SELL
+UK HSBA.L HSBC Holdings plc: SELL
+UK VOD.L Vodafone Group Public Limited Company: BUY
+UK BP.L BP p.l.c.: SELL
+UK SHEL.L Shell plc: SELL

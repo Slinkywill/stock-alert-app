@@ -1,6 +1,6 @@
 streamlit
 firebase-admin
-pyrebase4
+pyrebase
 requests
 pandas
 pandas-ta

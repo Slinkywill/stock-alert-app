@@ -1,33 +1,25 @@
 import streamlit as st
-import yfinance as yf
-import pandas_ta as ta
-import joblib
+import firebase_admin
+from firebase_admin import credentials, firestore
+import pandas as pd
 
-st.title("Stock Buy/Sell Predictor")
+# Initialize Firebase from Streamlit secrets
+if not firebase_admin._apps:
+    cred = credentials.Certificate(dict(st.secrets["FIREBASE_KEY_JSON"]))
+    firebase_admin.initialize_app(cred)
 
-ticker_input = st.text_input("Enter Stock Ticker (e.g. AAPL):", value="AAPL")
+db = firestore.client()
 
-if st.button("Predict"):
+st.title("Stock Alert Dashboard")
+
+email = st.text_input("Enter your registered email to see your latest predictions:")
+
+if st.button("Show My Predictions"):
     try:
-        model = joblib.load("trained_model.pkl")
-        scaler = joblib.load("scaler.pkl")
-
-        ticker = yf.Ticker(ticker_input)
-        hist = ticker.history(period="60d")
-        hist['SMA_50'] = ta.sma(hist['Close'], length=50)
-        hist['RSI_14'] = ta.rsi(hist['Close'], length=14)
-        latest = hist.dropna().iloc[-1]
-
-        features = ['Close', 'SMA_50', 'RSI_14']
-        X_live = scaler.transform([latest[features]])
-
-        prediction = model.predict(X_live)[0]
-
-        if prediction == 1:
-            st.success(f"🔵 BUY Signal for {ticker_input}")
-        else:
-            st.error(f"🔴 SELL Signal for {ticker_input}")
-
-    except Exception as e:
-        st.warning(f"Error: {e}")
-
+        with open(f"{email}_predictions_report.txt", "r") as f:
+            lines = f.readlines()
+        st.success("Here are your latest predictions:")
+        for line in lines:
+            st.write(line.strip())
+    except FileNotFoundError:
+        st.error("No prediction report found for this email.")

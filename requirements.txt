@@ -6,4 +6,5 @@ pandas
 pandas-ta
 yfinance
 scikit-learn
+gcloud
 
